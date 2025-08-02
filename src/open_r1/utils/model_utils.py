@@ -9,7 +9,7 @@ import os
 
 
 os.environ['VLLM_USE_V1'] = '0'
-login(token='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')
+login(token='xxx')
 
 def get_tokenizer(model_args: ModelConfig, training_args: SFTConfig | GRPOConfig) -> PreTrainedTokenizer:
     """Get the tokenizer for the model."""
