@@ -1,0 +1,266 @@
+# Copyright 2025 The HuggingFace Team. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import logging
+import os
+import sys
+
+import datasets
+import torch
+import transformers
+from datasets import load_dataset
+from transformers import set_seed
+from transformers.trainer_utils import get_last_checkpoint
+
+from src.open_r1.configs import GRPOConfig, GRPOScriptArguments
+from src.open_r1.rewards import get_reward_funcs
+from src.open_r1.utils import get_tokenizer, get_model
+from src.open_r1.utils.callbacks import get_callbacks
+from src.open_r1.utils.wandb_logging import init_wandb_training
+from trl import GRPOTrainer, ModelConfig, TrlParser, get_peft_config
+# from src.open_r1.utils.edited_grpo_trainer import GRPOEditedTrainer
+import json
+from datasets import load_dataset, load_from_disk, concatenate_datasets
+from datasets import Dataset, DatasetDict
+from huggingface_hub import login
+import random
+
+logger = logging.getLogger(__name__)
+
+os.environ['VLLM_USE_V1'] = '0'
+
+
+login(token='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')
+
+def main(script_args, training_args, model_args):
+    os.environ["WANDB_MODE"] = "offline"
+    
+    # Set seed for reproducibility
+    set_seed(training_args.seed)
+
+    ###############
+    # Setup logging
+    ###############
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+    log_level = training_args.get_process_log_level()
+    logger.setLevel(log_level)
+    datasets.utils.logging.set_verbosity(log_level)
+    transformers.utils.logging.set_verbosity(log_level)
+    transformers.utils.logging.enable_default_handler()
+    transformers.utils.logging.enable_explicit_format()
+
+    # Log on each process a small summary
+    logger.warning(
+        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
+        + f" distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
+    )
+    logger.info(f"Model parameters {model_args}")
+    logger.info(f"Script parameters {script_args}")
+    logger.info(f"Training parameters {training_args}")
+
+    # Check for last checkpoint
+    last_checkpoint = None
+    if os.path.isdir(training_args.output_dir):
+        last_checkpoint = get_last_checkpoint(training_args.output_dir)
+    if last_checkpoint is not None and training_args.resume_from_checkpoint is None:
+        logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
+
+    if "wandb" in training_args.report_to:
+        init_wandb_training(training_args)
+
+    # Load the dataset
+    # version1
+    # with open(script_args.dataset_name, 'r', encoding='utf-8') as f:
+    #     dataset = json.load(f)
+
+    # version2
+    # file_list = glob.glob("dataset/foundation_*_train.json")
+    # dataset = []
+    # for file in tqdm.tqdm(file_list):
+    #     with open(file, 'r', encoding='utf-8') as f:
+    #         data = json.load(f)
+    #         if isinstance(data, list):
+    #             dataset.extend(data)  # 리스트면 합치기
+    #         else:
+    #             dataset.append(data)  # 딕셔너리면 하나로 추가
+    
+#     # version3(이거로 해야함) 
+#     random.seed(12) # sft와 다르게
+#     num_samples = 2000
+#     dataset_train = []
+#     with open('./load_data/dataset/foundation_new_candidate_sampled_edited_t3s_202504_train.json', 'r', encoding='utf-8') as f: #foundation_new_t3s_202504_train.json
+#         dataset_t3s = json.load(f)
+#         random.shuffle(dataset_t3s)
+#         dataset_t3s = dataset_t3s[:num_samples]
+#         dataset_train.extend(dataset_t3s)
+        
+#     with open('./load_data/dataset/foundation_subsc_202504_train.json', 'r', encoding='utf-8') as f:
+#         dataset_subsc = json.load(f)
+#         random.shuffle(dataset_subsc)
+#         dataset_subsc = dataset_subsc[:num_samples]
+#         dataset_train.extend(dataset_subsc)
+        
+#     with open('./load_data/dataset/foundation_candidate_sampled_fee_202504_train.json', 'r', encoding='utf-8') as f:
+#         dataset_fee = json.load(f)
+#         random.shuffle(dataset_fee)
+#         dataset_fee = dataset_fee[:num_samples]
+#         dataset_train.extend(dataset_fee)
+
+
+
+
+
+
+
+
+
+
+    # amazon
+    domain = 'Amazon_Fashion'
+    # dataset_name = f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_20250521.json'
+    dataset_name = f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_20250521.json'
+    with open(dataset_name, 'r', encoding='utf-8') as f: 
+        dataset_train = json.load(f)
+    random.shuffle(dataset_train)
+    dataset_train = dataset_train[:1500] #[:1500]
+    
+        
+
+    with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_test_20250521.json", 'r', encoding='utf-8') as f:
+        dataset_test = json.load(f)
+    random.shuffle(dataset_test)
+    dataset_test = dataset_test[:500]  
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    dataset_train = Dataset.from_list(dataset_train)
+    dataset_test = Dataset.from_list(dataset_train)
+    
+    dataset = DatasetDict({
+                "train": dataset_train,
+                "test": dataset_test})
+
+    ################
+    # Load tokenizer
+    ################
+    tokenizer = get_tokenizer(model_args, training_args)
+
+    ##############
+    # Load model #
+    ##############
+    logger.info("*** Loading model ***")
+    model = get_model(model_args, training_args)
+    
+    # Get reward functions from the registry
+    reward_funcs = get_reward_funcs(script_args)
+
+    # Format into conversation
+    def make_conversation(example):
+        prompt = []
+
+        prompt.append({"role": "system", "content": example["system_prompt"]})
+        prompt.append({"role": "user", "content": example["input"]})
+        return {"prompt": prompt}
+
+    data_seed = 42
+    dataset['train'] = dataset['train'].shuffle(42).map(make_conversation)
+    dataset['test'] = dataset['test'].shuffle(42).map(make_conversation)
+    # print(dataset['test']['prompt'][0])
+    # print(dataset['test']['solution'][0])
+
+    for split in dataset:
+        if "messages" in dataset[split].column_names:
+            dataset[split] = dataset[split].remove_columns("messages")
+
+    #############################
+    # Initialize the GRPO trainer GRPOEditedTrainer GRPOTrainer
+    #############################
+    trainer = GRPOTrainer(
+        model=model_args.model_name_or_path,
+        reward_funcs=reward_funcs,
+        args=training_args,
+        train_dataset=dataset[script_args.dataset_train_split],
+        eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
+        peft_config=get_peft_config(model_args),
+        callbacks=get_callbacks(training_args, model_args),
+        processing_class=tokenizer,
+    )
+
+    ###############
+    # Training loop
+    ###############
+    logger.info("*** Train ***")
+    checkpoint = None
+    if training_args.resume_from_checkpoint is not None:
+        checkpoint = training_args.resume_from_checkpoint
+    elif last_checkpoint is not None:
+        checkpoint = last_checkpoint
+    train_result = trainer.train(resume_from_checkpoint=checkpoint)
+    metrics = train_result.metrics
+    metrics["train_samples"] = len(dataset[script_args.dataset_train_split])
+    trainer.log_metrics("train", metrics)
+    trainer.save_metrics("train", metrics)
+    trainer.save_state()
+
+    ##################################
+    # Save model and create model card
+    ##################################
+    logger.info("*** Save model ***")
+    trainer.save_model(training_args.output_dir)
+    logger.info(f"Model saved to {training_args.output_dir}")
+
+    # Save everything else on main process
+    kwargs = {
+        "dataset_name": script_args.dataset_name,
+        "tags": ["open-r1"],
+    }
+    if trainer.accelerator.is_main_process:
+        trainer.create_model_card(**kwargs)
+        # Restore k,v cache for fast inference
+        # trainer.model.config.use_cache = True
+        trainer.model.config.save_pretrained(training_args.output_dir)
+
+    ##########
+    # Evaluate
+    ##########
+    if training_args.do_eval:
+        logger.info("*** Evaluate ***")
+        metrics = trainer.evaluate()
+        metrics["eval_samples"] = len(dataset[script_args.dataset_test_split])
+        trainer.log_metrics("eval", metrics)
+        trainer.save_metrics("eval", metrics)
+
+    #############
+    # push to hub
+    #############
+    if training_args.push_to_hub:
+        logger.info("Pushing to hub...")
+        trainer.push_to_hub(**kwargs)
+
+
+if __name__ == "__main__":
+    parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
+    script_args, training_args, model_args = parser.parse_args_and_config()
+    
+    main(script_args, training_args, model_args)
