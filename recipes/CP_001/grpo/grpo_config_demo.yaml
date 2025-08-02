@@ -1,0 +1,85 @@
+# Model arguments
+model_name_or_path: /home/jovyan/cp-gpu-4-datavol-one-model/one-model-v4/one_model_v4_work/open-r1_20250411/data/google_gemma-3-12b-it_sft_001_amazon_Grocery_and_Gourmet_Food_lora #google/gemma-3-1b-it
+# model_name_or_path: google/gemma-3-27b-it
+# model_name_or_path: /home/jovyan/cp-gpu-4-datavol-one-model/one-model-v4/one_model_v4_work/open-r1_20250411/data/curriculum_reco_low_lr_202506_merged
+model_revision: main
+torch_dtype: bfloat16
+attn_implementation: flash_attention_2 #flash_attention_2 eager
+
+# Data training arguments
+# dataset_name: './load_data/dataset/foundation_total_202504_train_grpo_sampled.json' #skt
+dataset_name: './src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_Amazon_Fashion_llm_train_20250521.json' #amazon
+# GRPO trainer config
+bf16: true
+use_vllm: true
+do_eval: false
+eval_strategy: 'no' #'no'
+gradient_accumulation_steps: 8
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: true #false
+hub_model_id: google_gemma-3-12b-it_grpo_001_amazon_Grocery_and_Gourmet_Food
+# hub_model_id: curriculum_reco_low_lr_202506_merged_12b_grpo
+hub_strategy: every_save
+learning_rate: 2e-05 #2.0e-05
+log_completions: true
+log_level: info
+logging_first_step: true
+logging_steps: 1
+logging_strategy: steps
+lr_scheduler_type: cosine
+max_prompt_length: 10000 #10000 #max_model_len=self.max_prompt_length + self.max_completion_length
+max_completion_length: 300 #300 #1024
+max_steps: -1 #1400 #-1
+num_generations: 6 # 16 #2 # 16 #16
+num_train_epochs: 2 #1.2 #2 #-1 #2
+output_dir: data/google_gemma-3-12b-it_grpo_001_amazon_Grocery_and_Gourmet_Food
+# output_dir: data/curriculum_reco_low_lr_202506_merged_12b_grpo
+overwrite_output_dir: true
+per_device_eval_batch_size: 1 #16
+per_device_train_batch_size: 6 #16 #2 #16
+push_to_hub: false
+report_to:
+- wandb
+reward_funcs:
+- irm_final_rewards
+- tag_presence
+- tag_count
+- only_expected_tags
+reward_weights:
+- 4.0
+- 1.0
+- 1.0
+- 1.0
+save_strategy: "steps"
+save_steps: 50
+save_total_limit: 1
+seed: 42
+warmup_ratio: 0.05 #0.1
+use_peft: true
+lora_target_modules: ['v_proj', 'q_proj', 'k_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'] # ['k_proj', 'v_proj', 'q_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'] #['v_proj', 'q_proj'] #["q_proj", "v_proj"]
+lora_alpha: 16
+lora_r: 8 #8
+lora_dropout : 0
+bias : "none"
+lora_task_type : "CAUSAL_LM"
+load_in_8bit: True
+# optim: "paged_adamw_8bit"
+# load_in_4bit: True
+# bnb_4bit_quant_type : 'nf4'
+# bnb_4bit_compute_dtype: bfloat16
+dataset_text_field: 'text'
+trust_remote_code: True
+vllm_server_port: 8001
+# use_cache: False
+# use_liger_kernel: true
+# reward_funcs:
+# - irm_final_rewards
+# - tag_presence
+# - tag_count
+# - only_expected_tags
+# reward_weights:
+# - 4.0
+# - 1.0
+# - 1.0
+# - 1.0
