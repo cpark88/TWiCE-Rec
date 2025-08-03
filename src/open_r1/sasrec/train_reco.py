@@ -1,4 +1,3 @@
-
 # -*- coding:utf-8 -*-
 # __author__ = Chung Park
 # __date__ = 2024/3/2
@@ -26,7 +25,6 @@ from transformers import Trainer
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 import wandb
 import numpy as np
-# from transformers import LlamaModel, LlamaForCausalLM, LlamaTokenizer, BitsAndBytesConfig
 from safetensors import safe_open
 
 from outputs import ModelArguments, DataArguments, TrainingArguments, MyCallback
@@ -47,7 +45,6 @@ def train():
     wandb.init(mode="offline") #offline disabled
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    # training_args.label_names=['labels','labels_id', 'answer_id', 'test_neg', 'neg_sample_id'] # add inputs (multi-task) 
     training_args.label_names=['answer_id', 'test_neg','input_ids_item', 'pos_ids_item', 'neg_ids_item'] # add inputs (multi-task) 
     
     with open(f'amazon_dataset/vocab/{data_args.data_name}_vocab_{data_args.domain}.json', 'r') as f:
@@ -59,11 +56,10 @@ def train():
 
 
     data_args.model_type = 'train'
-    data_args.pad_token_id = 2#tokenizer.pad_token_id#20240913
+    data_args.pad_token_id = 2
     data_module = make_supervised_data_module_v3(data_args=data_args) # ->dict
     betas = (0.9, 0.999)
     optim = torch.optim.Adam(one_model.parameters(), lr=0.0001, betas=betas, weight_decay=0)
-    # trainer = Trainer(model=one_model, tokenizer=None, args=training_args, **data_module, optimizers=(optim, None)) #CustomTrainer Trainer
     trainer = Trainer(model=one_model, tokenizer=None, args=training_args, **data_module) #CustomTrainer Trainer
 
 
@@ -102,23 +98,11 @@ def train():
                     else:
                         pred_list_llm = np.append(pred_list_llm, test_logits_llm, axis=0)
 
-#                     type_pos_list.append([int(vocab_id_type[str(k)]) for k in answer_id.cpu().detach().numpy().copy()])
-
-#                 type_pos_final=np.concatenate(np.array(type_pos_list))
 
         print("Model Performance for LLM")
         print("================================================")
         print(get_sample_scores(epoch, pred_list_llm))
         print("================================================")
-        # print("5:",get_sample_scores(epoch, pred_list_llm[type_pos_final==5]))
-        # print("================================================")
-        # print("6:",get_sample_scores(epoch, pred_list_llm[type_pos_final==6]))
-        # print("================================================")
-        # print("7:",get_sample_scores(epoch, pred_list_llm[type_pos_final==7]))
-        # print("================================================")
-        # print("8:",get_sample_scores(epoch, pred_list_llm[type_pos_final==8]))
-        # print("================================================")
-        # print("9:",get_sample_scores(epoch, pred_list_llm[type_pos_final==9]))
 
 if __name__ == "__main__":
     train()

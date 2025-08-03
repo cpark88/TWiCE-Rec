@@ -1,22 +1,4 @@
-# python data_generator_v2.py \
-# --sample_num=100000 \
-# --default_next_token='<|n|>' \
-# --default_query_token='<q>' \
-# --min_len=5 \
-# --max_len=50 \
-# --data_name='amazon' \
-# --data_path='one_model_sequence_v3_temp.json'
-
-
-# python vocab_tokenizer.py \
-# --model_name 'TinyLlama/TinyLlama-1.1B-Chat-v1.0'  \
-# --subtoken_max_length=30 \
-# --padding='y' \
-# --data_name='amazon' \
-# --default_next_token='<|n|>' \
-# --default_query_token='<q>'  
-
-DOMAIN_NAME="Grocery_and_Gourmet_Food"
+ DOMAIN_NAME="Grocery_and_Gourmet_Food"
 
 CUDA_VISIBLE_DEVICES=2,3 torchrun --nproc_per_node=2 --master_port=1234 train_reco.py \
 --data_name 'amazon' \

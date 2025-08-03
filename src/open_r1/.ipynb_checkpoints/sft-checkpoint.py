@@ -119,32 +119,31 @@ def main(script_args, training_args, model_args):
     ################
     # Load datasets
     ################
-    
-
-        
     # amazon case
     
-    domain = "Grocery_and_Gourmet_Food"
+    
+    # domain = "Grocery_and_Gourmet_Food"
+    domain = training_args.domain
     dataset_train = []
 
     # task1: meta
-    # with open(f"./src/open_r1/sasrec/amazon_dataset/meta_dataset/amazon_{domain}_llm_train_20250521.json", 'r', encoding='utf-8') as f:
-    #     dataset_train_3 = json.load(f)
-    #     random.shuffle(dataset_train_3)
-    #     # dataset_train_3 = dataset_train_3[:200]
-    #     print("train1:", len(dataset_train_3))
-    #     dataset_train.extend(dataset_train_3)
+    with open(f"./src/open_r1/sasrec/amazon_dataset/meta_dataset/amazon_{domain}_llm_train_sample.json", 'r', encoding='utf-8') as f:
+        dataset_train_3 = json.load(f)
+        random.shuffle(dataset_train_3)
+        # dataset_train_3 = dataset_train_3[:200]
+        print("train1:", len(dataset_train_3))
+        dataset_train.extend(dataset_train_3)
 
-    # # task2: sr
-    # with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_2_20250521.json", 'r', encoding='utf-8') as f:
-    #     dataset_train_2 = json.load(f)
-    #     print("train2:", len(dataset_train_2))
-    #     random.shuffle(dataset_train_2)
-    #     # dataset_train_2 = dataset_train_2[:200]
-    #     dataset_train.extend(dataset_train_2)
+    # task2: sr
+    with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_2_sample.json", 'r', encoding='utf-8') as f:
+        dataset_train_2 = json.load(f)
+        print("train2:", len(dataset_train_2))
+        random.shuffle(dataset_train_2)
+        # dataset_train_2 = dataset_train_2[:200]
+        dataset_train.extend(dataset_train_2)
 
-#task3: srr
-    with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_20250521.json", 'r', encoding='utf-8') as f:
+    #task3: srr
+    with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_sample.json", 'r', encoding='utf-8') as f:
         dataset_train_1 = json.load(f)
         random.shuffle(dataset_train_1)
         # dataset_train_1 = dataset_train_1[:100]
@@ -156,7 +155,7 @@ def main(script_args, training_args, model_args):
         
         
         
-    with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_test_20250521.json", 'r', encoding='utf-8') as f:
+    with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_test_sample.json", 'r', encoding='utf-8') as f:
         dataset_test = json.load(f)
         random.shuffle(dataset_test)
         dataset_test = dataset_test[:500]  
@@ -173,8 +172,7 @@ def main(script_args, training_args, model_args):
     # Load tokenizer
     ################
     tokenizer = get_tokenizer(model_args, training_args)
-    # tokenizer.pad_token = tokenizer.eos_token # 향후 뺴야함
-
+    
     ###################
     # Load model
     ###################
@@ -198,18 +196,16 @@ def main(script_args, training_args, model_args):
     
     
     data_seed = 42
-    # dataset['train'] = dataset['train'].shuffle(42).map(make_sft_conversation)
-    dataset['train'] = dataset['train'].shuffle(42).map(make_sft_conversation) # curriculum no shuffle
-    dataset['test'] = dataset['test'].shuffle(42).map(make_sft_conversation)
+    dataset['train'] = dataset['train'].shuffle(data_seed).map(make_sft_conversation) # curriculum no shuffle
+    dataset['test'] = dataset['test'].shuffle(data_seed).map(make_sft_conversation)
     print(dataset['train']['text'][0])
     
     ############################
     # Initialize the SFT Trainer
     ############################
     # Alphaca Style
-    # response_template = "<|im_start|>assistant"
-    response_template = "<start_of_turn>model"
-    collator = DataCollatorForCompletionOnlyLM(response_template, tokenizer=tokenizer)#, pad_to_multiple_of=8)  
+    response_template = "<start_of_turn>model" #gemma style
+    collator = DataCollatorForCompletionOnlyLM(response_template, tokenizer=tokenizer)  
 
     trainer = SFTTrainer(
         model=model,

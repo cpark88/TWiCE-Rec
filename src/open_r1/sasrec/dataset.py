@@ -17,80 +17,16 @@ import transformers
 import util
 from torch.utils.data import Dataset
 
-# from peft import (
-#     LoraConfig,
-#     get_peft_model,
-#     prepare_model_for_int8_training,
-#     set_peft_model_state_dict
-# )
-
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 import wandb
 import numpy as np
 
-
-# IGNORE_INDEX = -100
-# DEFAULT_PAD_TOKEN = "[PAD]"
-# DEFAULT_EOS_TOKEN = "</s>"
-# DEFAULT_BOS_TOKEN = "<s>"
-# DEFAULT_UNK_TOKEN = "<unk>"
-
-# DEFAULT_NEXT_TOKEN = "<|n|>" # 텍스트 단위 행동 시퀀스의 구분자
-# DEFAULT_QUERY_TOKEN = "<q>" # user query 구분자
-
-# PROMPT_DICT = {
-#     "prompt_input": (
-#         "You are a an artificial intelligence assistant that recommend useful items to customers based on their profiles and interests.\n\n"
-#         "The assistant gives helpful, detailed, and sequential item sets to the customers.\n\n"
-#         "### Instruction:\n{instruction}%s\n\n### Input:\n{input}\n\n### Response:"%DEFAULT_QUERY_TOKEN
-#     ),
-#     "prompt_no_input": (
-#         "You are a an artificial intelligence assistant that recommend useful items to customers based on their profiles and interests.\n\n"
-#         "The assistant gives helpful, detailed, and sequential item sets to the customers.\n\n"
-#         "### Instruction:\n{instruction}%s\n\n### Response:"%DEFAULT_QUERY_TOKEN
-#     ),
-# }
 
 import json
 from util import smart_tokenizer_and_embedding_resize_v3, dict_str_key_to_int
 from outputs import ModelArguments, DataArguments, TrainingArguments, MyCallback
 
 
-
-# parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
-# model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-# training_args.label_names=['labels','labels_id', 'answer_id', 'test_neg', 'neg_sample_id'] # add inputs (multi-task) 
-
-# with open(f'token_mapping/vocab_mapping_{data_args.data_name}_v3.json', 'r') as f:
-#     vocab_dict = json.load(f)
-#     # vocab_dict = dict_str_key_to_int(vocab_dict_tokenized)
-
-
-# def _tokenize_fn(strings: Sequence[str], tokenizer: transformers.PreTrainedTokenizer) -> Dict:
-#     """
-#     Tokenize a list of strings.
-#     Set the final length of the input sequence (tokenizer.model_max_length).    
-#     """
-#     tokenized_list = [
-#         tokenizer(
-#             text,
-#             return_tensors="pt",
-#             padding="longest",
-#             max_length=tokenizer.model_max_length,
-#             truncation=True,
-#         )
-#         for text in strings
-#     ]
-#     input_ids = labels = [tokenized.input_ids[0] for tokenized in tokenized_list]
-#     input_ids_lens = labels_lens = [
-#         tokenized.input_ids.ne(tokenizer.pad_token_id).sum().item() for tokenized in tokenized_list
-#     ]
-#     return dict(
-#         input_ids=input_ids,
-#         labels=labels,
-#         input_ids_lens=input_ids_lens,
-#         labels_lens=labels_lens,
-#     )
 
 
 def custom_replace_neg(tensor, next_index, ignore_index):
@@ -146,24 +82,6 @@ class SupervisedDatasetv3(Dataset):
         logging.warning("Formatting inputs...")
 
         sources = [example for example in list_data_dict]
-        
-#         self.answer_id=[]
-#         if self.model_type=='inference':
-#             targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) }" for example in list_data_dict]# 수정 20240501
-#             self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict] # 수정 20240501
-
-#         elif self.model_type=='train':
-#             targets_id = [f"{ ','.join(example['output_id'].split(',')[:-2]) }" for example in list_data_dict]# 수정 20240501
-#             self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict]
-
-#         elif self.model_type=='valid':
-#             self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict]
-#             # self.answer_id = [0]
-
-#         elif self.model_type=='test':
-#             targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) }" for example in list_data_dict]# 수정 20240501
-#             self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict] # only for test
-
 
         self.answer_id=[]
         if self.model_type=='inference':
@@ -253,8 +171,8 @@ class DataCollatorForSupervisedDatasetv3(object):
         neg_ids_item = customized_pad_sequence(neg_ids_item, batch_first=True, padding_value=self.pad_token_id, pos='left')
 
         return dict(
-            answer_id=answer_id, # sub-token 변환 전이며 이는 evaluation시 마지막 도메인 확인 시에 사용
-            test_neg=test_neg, # sub-token 변환전 
+            answer_id=answer_id, 
+            test_neg=test_neg, 
             input_ids_item=input_ids_item,
             pos_ids_item=pos_ids_item,
             neg_ids_item=neg_ids_item,

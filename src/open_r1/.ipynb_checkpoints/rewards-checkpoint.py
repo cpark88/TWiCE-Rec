@@ -65,10 +65,8 @@ from sasrec.util import dict_str_key_to_int, sequential_loss, clm_loss, sequenti
 from sasrec.sequential_reco import *
 from sasrec.customized_model import *
 from sasrec.outputs import ModelArguments, DataArguments, TrainingArguments, MyCallback
-# from sasrec.dataset import make_supervised_data_module_v3
 from sasrec.util import smart_tokenizer_and_embedding_resize_v3, dict_str_key_to_int, CustomTrainer, CustomCallback
 from safetensors.torch import load_file
-# from util import neg_sample, neg_sample_set, get_sample_scores
 from sasrec.customized_model import OneModelV3
 import json
 from typing import Union, Dict, Optional, Sequence
@@ -88,7 +86,6 @@ from transformers import Trainer
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 import wandb
 import numpy as np
-# from transformers import LlamaModel, LlamaForCausalLM, LlamaTokenizer, BitsAndBytesConfig
 from safetensors import safe_open
 
 
@@ -97,38 +94,34 @@ data_args = DataArguments()
 training_args = TrainingArguments()
 training_args.label_names=['answer_id', 'test_neg','input_ids_item', 'pos_ids_item', 'neg_ids_item']
 
-domain = "Amazon_Fashion"
+domain = "Office_Products"
 
 with open(f'./src/open_r1/sasrec/amazon_dataset/vocab/amazon_vocab_{domain}.json', 'r') as f:
     vocab_dict = json.load(f)
 vocab_dict_inverse = {v:k for k, v in vocab_dict.items()}
 
 data_args.len_vocab_dict_tokenized = len(vocab_dict)+1
-model_args.pretrained_model_path = f"./src/open_r1/sasrec/output_dir/{domain}/checkpoint-120/model.safetensors"
+model_args.pretrained_model_path = f"./src/open_r1/sasrec/output_dir/{domain}/checkpoint-100/model.safetensors"
 data_args.pad_token_id = 2
 training_args.model_max_length = 100
 training_args.item_enc_type = 'fc_layer'
 training_args.neg_sample_type = 'basic'
 # training_args.hidden_size_item = 64
-
-
-one_model = OneModelV3(model_args, data_args, training_args)
-
-
+one_model = OneModelV3(model_args, data_args, training_args) # this is the pretrained CF-Rec model.
 
 state_dict = load_file(model_args.pretrained_model_path)
 one_model.load_state_dict(state_dict)
 print("Model Load Complete!")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-one_model.to(device)  # 모델을 GPU로
+one_model.to(device)
 one_model.eval()
 print(one_model)
 
 
-    
-def irm_final_rewards(completions: list[list[dict[str, str]]], output: list[str], output_id: list[str], lambda_: float = 3.0, cf_threshold: float = 0.3, **kwargs) -> list[Optional[float]]: # default lambda = 2
+# irm_final_rewards    
+def collaborative_guided_reward(completions: list[list[dict[str, str]]], output: list[str], output_id: list[str], lambda_: float = 3.0, cf_threshold: float = 0.3, **kwargs) -> list[Optional[float]]: # default lambda = 2
     """
-    Interaction-aware Reward Modulation (IRM)
+    collaborative_guided_reward
     
     - item_rewards: 0 or 1
     - cf_rewards: float (0~1)
@@ -136,7 +129,7 @@ def irm_final_rewards(completions: list[list[dict[str, str]]], output: list[str]
     - delta: penalty if CF is high but item is wrong
     - cf_threshold: threshold to define 'high' CF score
     """
-    cf_rewards = cf_model_reward(completions, output_id)
+    cf_rewards = collaborative_filtering_reward(completions, output_id)
     item_match_rewards = item_id_match_reward(completions, output)
     assert len(item_match_rewards) == len(cf_rewards), "different lengths between cf and item!"
 
@@ -157,7 +150,7 @@ def irm_final_rewards(completions: list[list[dict[str, str]]], output: list[str]
     
     
 
-def cf_model_reward(completions: list[list[dict[str, str]]], output_id: list[str], **kwargs) -> list[Optional[float]]: #solution
+def collaborative_filtering_reward(completions: list[list[dict[str, str]]], output_id: list[str], **kwargs) -> list[Optional[float]]: #solution
     """Reward function that checks if the text inside <item>...</item> exactly matches the solution."""
     contents = [completion[0]["content"] for completion in completions] # vllm의 output 형태 
     rewards = []
@@ -195,13 +188,11 @@ def item_match_reward(completions: list[list[dict[str, str]]], output: list[str]
         if match:
             item_text = match.group(1).strip()
             sol_text = sol_match.group(1).strip()
-            # 정확히 일치하는지 비교
+            # matching
             reward = 1.0 if item_text == sol_text else 0.0
         else:
-            # <item> 태그 자체가 없으면 reward 0
             reward = 0.0
         rewards.append(reward)
-        # print("="*100,item_text, "*"*5, sol_text)
     return rewards
 
 def item_id_match_reward(completions: list[list[dict[str, str]]], output: list[str], **kwargs) -> list[Optional[float]]: #solution
@@ -209,23 +200,16 @@ def item_id_match_reward(completions: list[list[dict[str, str]]], output: list[s
     contents = [completion[0]["content"] for completion in completions] # vllm의 output 형태 
     rewards = []
     for content, sol in zip(contents, output):#solution
-        # <item>...</item> 사이의 텍스트 추출
-        # required_tags = ["item_nm", "item_id"]
-        
-        # match = re.search(r"<item_id>(.*?)</item_id>", content, re.DOTALL)
-        # sol_match = re.search(r"<item_id>(.*?)</item_id>", sol, re.DOTALL)
         match = re.search(r"<item_id>(.*?)</item_id>", content, re.DOTALL) #amazon
         sol_match = re.search(r"<item_id>(.*?)</item_id>", sol, re.DOTALL) #amazon
         if match:
             item_text = match.group(1).strip()
             sol_text = sol_match.group(1).strip()
-            # 정확히 일치하는지 비교
             reward = 1.0 if item_text == sol_text else 0.0
         else:
-            # <item> 태그 자체가 없으면 reward 0
             reward = 0.0
         rewards.append(reward)
-        # print("="*100,item_text, "*"*5, sol_text)
+
     return rewards   
     
 def only_expected_tags_reward(completions: list[list[dict[str, str]]], **kwargs) -> list[Optional[float]]:
@@ -258,8 +242,6 @@ def only_expected_tags_reward(completions: list[list[dict[str, str]]], **kwargs)
 def tag_presence_reward(completions: list[list[dict[str, str]]], **kwargs) -> list[Optional[float]]:
     contents = [completion[0]["content"] for completion in completions]
     rewards = []
-    # required_tags = ["think", "item_nm", "item_id","sales"]
-    # required_tags = ["item_nm", "item_id"]#기존
     required_tags = ["item_id", "item_nm", "think"]
 
     for content in contents:
@@ -590,148 +572,6 @@ def _init_event_loop():
     return loop
 
 
-# def ioi_code_reward(completions, test_batch_size: int = 1, **kwargs) -> list[float]:
-#     """Reward function that evaluates IOI problems using Piston+our IOI package.
-
-#     Assumes the dataset has the same format as hf.co/datasets/open-r1/ioi
-
-#     test_batch_size: evaluate these many test cases in parallel, then check if any of them failed (0 score): if so stop evaluating; otherwise continue with the next batch of test cases.
-#     """
-#     # for info on setting up piston workers, see slurm/piston/README.md
-#     piston_client = get_piston_client_from_env()
-
-#     code_snippets = [
-#         # note: grading is automatically skipped if no code is extracted
-#         add_includes(extract_code(completion[-1]["content"], "cpp"), problem_id)
-#         for completion, problem_id in zip(completions, kwargs["id"])
-#     ]
-
-#     async def run_catch_exceptions(task):
-#         try:
-#             return await task
-#         except Exception as e:
-#             print(f"Error from Piston worker: {e}")
-#             return SubtaskResult()  # score 0.0
-
-#     # load problem data. undo separating kwargs by column
-#     problems_data = [dict(zip(kwargs.keys(), values)) for values in zip(*kwargs.values())]
-
-#     loop = _init_event_loop()
-#     evals = [
-#         loop.create_task(
-#             run_catch_exceptions(score_subtask(piston_client, problem_data, code, test_batch_size=test_batch_size))
-#         )
-#         for problem_data, code in zip(problems_data, code_snippets)
-#     ]
-#     results = loop.run_until_complete(asyncio.gather(*evals))
-
-#     return [result.score for result in results]
-
-
-# def extract_code(completion: str, language: str = "python") -> str:
-#     pattern = re.compile(rf"```{language}\n(.*?)```", re.DOTALL)
-#     matches = pattern.findall(completion)
-#     extracted_answer = matches[-1] if len(matches) >= 1 else ""
-#     return extracted_answer
-
-
-# def binary_code_reward(completions, num_parallel: int = 2, e2b_router_url=None, **kwargs) -> list[float]:
-#     rewards = code_reward(completions, num_parallel=num_parallel, e2b_router_url=e2b_router_url, **kwargs)
-#     BINARY_THRESHOLD = 0.99
-#     return [1.0 if reward > BINARY_THRESHOLD else 0.0 for reward in rewards]
-
-
-# def code_reward(completions, num_parallel: int = 2, e2b_router_url=None, **kwargs) -> list[float]:
-#     """Reward function that evaluates code snippets using the E2B code interpreter.
-
-#     Assumes the dataset contains a `verification_info` column with test cases.
-#     """
-#     if not is_e2b_available():
-#         raise ImportError(
-#             "E2B is not available and required for this reward function. Please install E2B with "
-#             "`pip install e2b-code-interpreter` and add an API key to a `.env` file."
-#         )
-
-#     # TODO: add support for other languages in E2B: https://e2b.dev/docs/code-interpreting/supported-languages
-#     """Returns a reward function that evaluates code snippets in a sandbox."""
-#     evaluation_script_template = """
-#     import subprocess
-#     import json
-
-#     def evaluate_code(code, test_cases):
-#         passed = 0
-#         total = len(test_cases)
-#         exec_timeout = 5
-
-#         for case in test_cases:
-#             process = subprocess.run(
-#                 ["python3", "-c", code],
-#                 input=case["input"],
-#                 text=True,
-#                 capture_output=True,
-#                 timeout=exec_timeout
-#             )
-
-#             if process.returncode != 0:  # Error in execution
-#                 continue
-
-#             output = process.stdout.strip()
-
-#             # TODO: implement a proper validator to compare against ground truth. For now we just check for exact string match on each line of stdout.
-#             all_correct = True
-#             for line1, line2 in zip(output.split('\\n'), case['output'].split('\\n')):
-#                 all_correct = all_correct and line1.strip() == line2.strip()
-
-#             if all_correct:
-#                 passed += 1
-
-#         success_rate = (passed / total)
-#         return success_rate
-
-#     code_snippet = {code}
-#     test_cases = json.loads({test_cases})
-
-#     evaluate_code(code_snippet, test_cases)
-#     """
-#     code_snippets = [extract_code(completion[-1]["content"]) for completion in completions]
-#     verification_info = kwargs["verification_info"]
-#     scripts = [
-#         evaluation_script_template.format(code=json.dumps(code), test_cases=json.dumps(json.dumps(info["test_cases"])))
-#         for code, info in zip(code_snippets, verification_info)
-#     ]
-
-#     language = verification_info[0]["language"]
-#     if not all(v["language"] == language for v in verification_info):
-#         raise ValueError("All verification_info must have the same language", verification_info)
-
-#     if e2b_router_url is not None:
-#         router_sandbox = RoutedSandbox(router_url=e2b_router_url)
-
-#         executions = router_sandbox.run_code(
-#             scripts=scripts,
-#             language=language,
-#             timeout=30,
-#             request_timeout=28,
-#         )
-
-#         rewards = []
-#         for execution in executions:
-#             try:
-#                 reward = float(execution.text)
-#                 rewards.append(reward)
-#             except Exception:
-#                 rewards.append(None)
-#         return rewards
-
-#     try:
-#         rewards = run_async_from_sync(scripts, language, num_parallel)
-#     except Exception as e:
-#         print(f"Error from E2B executor: {e}")
-#         rewards = [0.0] * len(completions)
-
-#     return rewards
-
-
 def get_code_format_reward(language: str = "python"):
     """Format reward function specifically for code responses.
 
@@ -808,48 +648,13 @@ async def run_script(script: str, language: str, semaphore: asyncio.Semaphore) -
 
 def get_reward_funcs(script_args) -> list[Callable]:
     REWARD_FUNCS_REGISTRY = {
-        # "accuracy": accuracy_reward,
-        # "format": format_reward,
-        # "reasoning_steps": reasoning_steps_reward,
-        # "cosine": get_cosine_scaled_reward(
-        #     min_value_wrong=script_args.cosine_min_value_wrong,
-        #     max_value_wrong=script_args.cosine_max_value_wrong,
-        #     min_value_correct=script_args.cosine_min_value_correct,
-        #     max_value_correct=script_args.cosine_max_value_correct,
-        #     max_len=script_args.cosine_max_len,
-        # ),
-        # "repetition_penalty": get_repetition_penalty_reward(
-        #     ngram_size=script_args.repetition_n_grams,
-        #     max_penalty=script_args.repetition_max_penalty,
-        # ),
-        # "length": len_reward,
-        # "code": update_wrapper(
-        #     partial(
-        #         code_reward,
-        #         num_parallel=script_args.parallel_code_exec_per_proc,
-        #         e2b_router_url=script_args.e2b_router_url,
-        #     ),
-        #     code_reward,
-        # ),
-        # "binary_code": update_wrapper(
-        #     partial(
-        #         binary_code_reward,
-        #         num_parallel=script_args.parallel_code_exec_per_proc,
-        #         e2b_router_url=script_args.e2b_router_url,
-        #     ),
-        #     binary_code_reward,
-        # ),
-        # "ioi_code": update_wrapper(
-        #     partial(ioi_code_reward, test_batch_size=script_args.code_eval_test_batch_size), ioi_code_reward
-        # ),
-        # "code_format": get_code_format_reward(language=script_args.code_language),
         "tag_count": tag_count_reward,
         "item_accuracy" : item_match_reward,
         "item_id_accuracy" : item_id_match_reward,
         "tag_presence" : tag_presence_reward,
         "only_expected_tags" : only_expected_tags_reward,
-        "cf_model_reward" : cf_model_reward,
-        "irm_final_rewards" : irm_final_rewards,
+        "cf_model_reward" : collaborative_filtering_reward,
+        "collaborative_guided_reward" : collaborative_guided_reward,
     }
     reward_funcs = [REWARD_FUNCS_REGISTRY[func] for func in script_args.reward_funcs]
 

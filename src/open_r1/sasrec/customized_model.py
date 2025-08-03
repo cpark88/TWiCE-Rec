@@ -16,11 +16,8 @@ import numpy as np
 import copy
 import random
 
-# from sequential_reco import Encoder, EmbHead, LayerNorm, PositionEmbedding, EncoderItem, Intermediate, IntermediateItem, ItemEncoder
-# from outputs import CustomModelOutput
 import argparse
 from types import SimpleNamespace
-# from util import dict_str_key_to_int, sequential_loss, clm_loss, sequential_loss_item, kl_divergence_loss, AdaptiveLossWeighting, normalize_loss, init_weights
 
 
 class OneModelV3(nn.Module):
@@ -81,8 +78,8 @@ class OneModelV3(nn.Module):
     def evaluate(self, answer_id, test_neg, input_ids_item):
         """
         Leave-one-out Evaluation
-        answer_id : seq내 마지막 item index (정답) 
-        test_neg : test 용 100개 item index
+        answer_id : last item index (ground-truth) 
+        test_neg : test item index 
         input_ids_item : input item seq
         """
         _, seq_out = self.forward(test_neg=None, answer_id=None, input_ids_item=input_ids_item, pos_ids_item=None, neg_ids_item=None)

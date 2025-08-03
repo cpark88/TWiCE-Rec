@@ -1,0 +1,64 @@
+# Model arguments
+model_name_or_path: /home/jovyan/cp-gpu-4-datavol-one-model/one-model-v4/one_model_v4_work/open-r1_20250411/data/google_gemma-3-1b-it_sft_001_amazon_Office_Products_lora #google/gemma-3-1b-it
+model_revision: main
+torch_dtype: bfloat16
+attn_implementation: flash_attention_2 #eager
+
+# Data training arguments
+# dataset_name: './src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_Office_Products_llm_train_sample.json' #amazon
+# GRPO trainer config
+bf16: true
+use_vllm: true
+do_eval: false
+eval_strategy: 'no' 
+gradient_accumulation_steps: 8
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: true #false
+hub_model_id: google_gemma-3-1b-it_grpo_001_amazon_Office_Products
+hub_strategy: every_save
+learning_rate: 2e-05 #2.0e-05
+log_completions: true
+log_level: info
+logging_first_step: true
+logging_steps: 1
+logging_strategy: steps
+lr_scheduler_type: cosine
+max_prompt_length: 10000 
+max_completion_length: 300 
+max_steps: -1 
+num_generations: 16 
+num_train_epochs: 2 
+output_dir: data/google_gemma-3-1b-it_grpo_001_amazon_Office_Products
+overwrite_output_dir: true
+per_device_eval_batch_size: 1 
+per_device_train_batch_size: 16 
+push_to_hub: false
+report_to:
+- wandb
+reward_funcs:
+- irm_final_rewards
+- tag_presence
+- tag_count
+- only_expected_tags
+reward_weights:
+- 4.0
+- 1.0
+- 1.0
+- 1.0
+save_strategy: "steps"
+save_steps: 50
+save_total_limit: 1
+seed: 42
+warmup_ratio: 0.05 #0.1
+use_peft: true
+lora_target_modules: ['v_proj', 'q_proj', 'k_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj']
+lora_alpha: 16
+lora_r: 8 #8
+lora_dropout : 0
+bias : "none"
+lora_task_type : "CAUSAL_LM"
+load_in_8bit: True
+dataset_text_field: 'text'
+trust_remote_code: True
+vllm_server_port: 8001

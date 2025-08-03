@@ -13,7 +13,6 @@ import tqdm
 # from openai import openai_object
 import copy
 import random
-# StrOrOpenAIObject = Union[str, openai_object.OpenAIObject]
 from typing import Dict, Optional, Sequence
 import numpy as np
 
@@ -146,11 +145,7 @@ def sequential_loss_item(item_embeddings, seq_out, pos_id, neg_id, training_args
         return loss
 
 def kl_divergence_loss(student_output, teacher_output, temperature):
-    """
-    student_output: 학생 모델의 attention layer 출력
-    teacher_output: 교사 모델의 attention layer 출력
-    temperature: 온도 매개변수
-    """
+
     # 온도를 반영한 softmax 분포 계산
     teacher_probs = F.softmax(teacher_output / temperature, dim=2) # B x S x H
     student_log_probs = F.log_softmax(student_output / temperature, dim=2) # B x S x H
@@ -160,7 +155,7 @@ def kl_divergence_loss(student_output, teacher_output, temperature):
     return kl_div
     
 
-# Adaptive weight를 위한 클래스 정의
+
 class AdaptiveLossWeighting(nn.Module):
     def __init__(self, num_losses):
         super(AdaptiveLossWeighting, self).__init__()
@@ -176,9 +171,8 @@ class AdaptiveLossWeighting(nn.Module):
             weighted_losses += weighted_loss
         return weighted_losses
 
-# 손실을 표준화하기 위한 함수
 def normalize_loss(loss, mean, std):
-    return (loss - mean) / (std + 1e-6)  # 분모에 작은 값을 더해 0으로 나누는 것을 방지
+    return (loss - mean) / (std + 1e-6) 
 
 def dict_str_key_to_int(target_dict):
     """
@@ -352,40 +346,3 @@ class CustomCallback(TrainerCallback):
             logs['item_loss'] = logs['item_loss']
         if logs is not None and 'kl_loss' in logs:
             logs['kl_loss'] = logs['kl_loss']
-
-        # Call the parent class's on_log to handle default logs like grad_norm, learning_rate, etc.
-        # super().on_log(args, state, control, logs)
-        
-# # GradNorm 클래스 정의
-# class GradNorm:
-#     def __init__(self, num_losses, alpha=0.5):
-#         self.weights = nn.Parameter(torch.ones(num_losses))  # 초기 가중치는 1로 설정
-#         self.alpha = alpha  # 하이퍼파라미터: 기울기 균형 조정을 위한 지수값
-
-#     def compute_grad_norm(self, model, losses):
-#         # 각 손실의 기울기 norm 계산
-#         norms = []
-#         for loss in losses:
-#             model.zero_grad()
-#             loss.backward(retain_graph=True)
-#             grad_norm = 0
-#             for param in model.parameters():
-#                 if param.grad is not None:
-#                     grad_norm += torch.norm(param.grad, p=2)  # L2 norm
-#             norms.append(grad_norm.item())
-#         return torch.tensor(norms)
-
-#     def update_weights(self, losses, initial_grad_norm, current_grad_norm):
-#         # 각 손실의 상대적인 기울기 norm 계산
-#         relative_norms = current_grad_norm / initial_grad_norm
-#         mean_relative_norm = relative_norms.mean()
-
-#         # 가중치 업데이트 규칙 적용
-#         target_norms = mean_relative_norm * (relative_norms ** self.alpha)
-#         self.weights.data = self.weights.data * (target_norms / current_grad_norm)
-
-#     def get_weighted_loss(self, losses):
-#         weighted_losses = 0
-#         for i, loss in enumerate(losses):
-#             weighted_losses += self.weights[i] * loss
-#         return weighted_losses

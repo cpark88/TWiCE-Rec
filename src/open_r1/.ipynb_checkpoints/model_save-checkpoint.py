@@ -39,20 +39,6 @@ def main():
 
     args = parser.parse_args()    
     
-    
-#     parser = argparse.ArgumentParser(description="Run with a YAML config")
-#     parser.add_argument("--config", type=str, required=True, help="Path to the YAML configuration file")
-#     args = parser.parse_args()
-#     yaml_config = load_yaml_config(args.config)
-    
-#     # Parse the YAML config
-#     args = parser.parse_dict(yaml_config)    
-
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--model_name_or_path", default="negative", type=str)
-    # parser.add_argument('--output_dir', default='output/', type=str)
-    # args = parser.parse_args()
-    
     ###
     base_model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path, torch_dtype=torch.float16)
     print(base_model.dtype)

@@ -14,7 +14,6 @@ from torch.nn import Linear, BatchNorm1d, ReLU, Tanh
 def initialize_non_glu(module, input_dim, output_dim):
     gain_value = np.sqrt((input_dim + output_dim) / np.sqrt(4 * input_dim))
     torch.nn.init.xavier_normal_(module.weight, gain=gain_value)
-    # torch.nn.init.zeros_(module.bias)
     return
 
 def gelu(x):

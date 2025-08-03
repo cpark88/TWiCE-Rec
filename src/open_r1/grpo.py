@@ -39,8 +39,6 @@ import random
 logger = logging.getLogger(__name__)
 
 os.environ['VLLM_USE_V1'] = '0'
-
-
 login(token='xxx')
 
 def main(script_args, training_args, model_args):
@@ -91,17 +89,18 @@ def main(script_args, training_args, model_args):
 
 
     # amazon
-    domain = 'Amazon_Fashion'
+    # domain = 'Amazon_Fashion'
+    domain = training_args.domain
     # dataset_name = f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_20250521.json'
-    dataset_name = f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_20250521.json'
+    dataset_name = f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_sample.json'
     with open(dataset_name, 'r', encoding='utf-8') as f: 
         dataset_train = json.load(f)
     random.shuffle(dataset_train)
-    dataset_train = dataset_train[:1500] #[:1500]
+    dataset_train = dataset_train[:1500] #20%~30%
     
         
 
-    with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_test_20250521.json", 'r', encoding='utf-8') as f:
+    with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_test_sample.json", 'r', encoding='utf-8') as f:
         dataset_test = json.load(f)
     random.shuffle(dataset_test)
     dataset_test = dataset_test[:500]  
@@ -144,10 +143,8 @@ def main(script_args, training_args, model_args):
         return {"prompt": prompt}
 
     data_seed = 42
-    dataset['train'] = dataset['train'].shuffle(42).map(make_conversation)
-    dataset['test'] = dataset['test'].shuffle(42).map(make_conversation)
-    # print(dataset['test']['prompt'][0])
-    # print(dataset['test']['solution'][0])
+    dataset['train'] = dataset['train'].shuffle(data_seed).map(make_conversation)
+    dataset['test'] = dataset['test'].shuffle(data_seed).map(make_conversation)
 
     for split in dataset:
         if "messages" in dataset[split].column_names:
@@ -197,8 +194,6 @@ def main(script_args, training_args, model_args):
     }
     if trainer.accelerator.is_main_process:
         trainer.create_model_card(**kwargs)
-        # Restore k,v cache for fast inference
-        # trainer.model.config.use_cache = True
         trainer.model.config.save_pretrained(training_args.output_dir)
 
     ##########
