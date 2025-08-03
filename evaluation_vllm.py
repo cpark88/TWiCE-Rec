@@ -114,17 +114,12 @@ def inference():
     domain = "Amazon_Fashion"
     print(domain)
     model_name = f"/home/jovyan/cp-gpu-4-datavol-one-model/one-model-v4/one_model_v4_work/open-r1_20250411/data/google_gemma-3-1b-it_{stage}_{type_}_amazon_{domain}_lora"
-    # model_name = f"/home/jovyan/cp-gpu-4-datavol-one-model/one-model-v4/one_model_v4_work/open-r1_20250411/data/google_gemma-3-1b-it_{stage}_{type_}_amazon_Amazon_Fashion_lora"
-    # model_name = f"google/gemma-3-1b-it"
     llm = LLM(model=model_name, max_model_len=13000, tensor_parallel_size=1, dtype=torch.bfloat16, trust_remote_code=True)#torch.bfloat16)
 
     tokenizer = llm.get_tokenizer()
     
     with open(f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_test_20250521.json', 'r', encoding='utf-8') as f:
         df_final_amazon = json.load(f)
-    # with open(f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_test_case2_20250521.json', 'r', encoding='utf-8') as f:
-        # df_final_amazon = json.load(f)
-        
     ground_truth = [ extract_items(df_final_amazon[index]['output']) for index in range(len(df_final_amazon)) ]
         
         
@@ -137,37 +132,7 @@ def inference():
         # return prompt #vllm serve
         return {'text':tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)}   
 
-    # deterministic
-    # Exploratory (High-Creativity)
-    # sampling_params_with_processor = SamplingParams(
-    #     temperature=0.7,#0.2,#0.7,#0.1,  # 창의적 생성 조정
-    #     top_k=50,#50,  # 확률이 높은 k개만 선택
-    #     top_p=0.9,#0.95,#0.1, # 누적 확률이 p 이상이면 중단
-    #     # repetition_penalty=1.1,  # 중복 단어 방지
-    #     max_tokens=300,
-    #     n=8,
-    #     stop = ["</item_id>"], # 어차피 뒤에서 자름
-    # )
-    
-    # sampling_params_with_processor = SamplingParams(
-    #     temperature=1.2,#0.2,#0.7,#0.1,  # 창의적 생성 조정
-    #     top_k=100,#50,  # 확률이 높은 k개만 선택
-    #     top_p=0.95,#0.95,#0.1, # 누적 확률이 p 이상이면 중단
-    #     # repetition_penalty=1.1,  # 중복 단어 방지
-    #     max_tokens=300,
-    #     n=8,
-    #     stop = ["</item_id>"], # 어차피 뒤에서 자름
-    # )
-    
-#     sampling_params_with_processor = SamplingParams(
-#         temperature=0.2,#0.2,#0.7,#0.1,  # 창의적 생성 조정
-#         top_k=20,#50,  # 확률이 높은 k개만 선택
-#         top_p=0.9,#0.95,#0.1, # 누적 확률이 p 이상이면 중단
-#         # repetition_penalty=1.1,  # 중복 단어 방지
-#         max_tokens=300,
-#         n=8,
-#         stop = ["</item_id>"], # 어차피 뒤에서 자름
-#     )
+
     num_gen = 10
     sampling_params_with_processor = SamplingParams(
         temperature=1.5, # 창의적 생성 조정 임시로 1로 조정
