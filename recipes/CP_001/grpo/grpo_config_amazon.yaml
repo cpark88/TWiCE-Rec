@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: /home/jovyan/cp-gpu-4-datavol-one-model/one-model-v4/one_model_v4_work/open-r1_20250411/data/google_gemma-3-1b-it_sft_001_amazon_Grocery_and_Gourmet_Food_lora #google/gemma-3-1b-it
+model_name_or_path: data/google_gemma-3-1b-it_sft_001_amazon_Grocery_and_Gourmet_Food_lora #google/gemma-3-1b-it
 model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2 #eager
