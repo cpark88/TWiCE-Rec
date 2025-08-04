@@ -39,7 +39,7 @@ import random
 logger = logging.getLogger(__name__)
 
 os.environ['VLLM_USE_V1'] = '0'
-login(token='xxx')
+login(token='your_token')
 
 def main(script_args, training_args, model_args):
     os.environ["WANDB_MODE"] = "offline"
@@ -91,12 +91,12 @@ def main(script_args, training_args, model_args):
     # amazon
     # domain = 'Amazon_Fashion'
     domain = training_args.domain
-    # dataset_name = f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_20250521.json'
     dataset_name = f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_sample.json'
     with open(dataset_name, 'r', encoding='utf-8') as f: 
         dataset_train = json.load(f)
     random.shuffle(dataset_train)
-    dataset_train = dataset_train[:1500] #20%~30%
+    num_data = len(dataset_train)
+    dataset_train = dataset_train[:int(num_data*0.15)] #~20%
     
         
 

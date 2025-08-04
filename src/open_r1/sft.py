@@ -45,12 +45,19 @@ import transformers
 from datasets import load_dataset, load_from_disk
 from transformers import set_seed
 from transformers.trainer_utils import get_last_checkpoint
+from trl import DataCollatorForCompletionOnlyLM
+from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoConfig
+import random
+import json
+from datasets import Dataset, DatasetDict
+from huggingface_hub import login
+
 
 from src.open_r1.configs import SFTConfig
 from src.open_r1.utils import get_tokenizer, get_model
 from src.open_r1.utils.callbacks import get_callbacks
 from src.open_r1.utils.wandb_logging import init_wandb_training
-from src.open_r1.utils.prompt import Prompt
 
 from trl import (
     ModelConfig,
@@ -62,20 +69,13 @@ from trl import (
     get_quantization_config,
 )
 
-from trl import DataCollatorForCompletionOnlyLM
 
-from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoConfig
-import random
-import json
-from datasets import Dataset, DatasetDict
-from huggingface_hub import login
 
 logger = logging.getLogger(__name__)
 
 os.environ['VLLM_USE_V1'] = '0'
 
-login(token='xxx')
+login(token='your_token')
 
 
 def main(script_args, training_args, model_args):

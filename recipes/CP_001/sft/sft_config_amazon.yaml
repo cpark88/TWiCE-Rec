@@ -5,9 +5,9 @@ torch_dtype: bfloat16
 attn_implementation: flash_attention_2 # eager
 
 # Data training arguments
-# dataset_name: './load_data/dataset/foundation_merged_202504_train.json' 
+dataset_name: 'amazon' 
 dataset_num_proc: 48
-
+domain: "Grocery_and_Gourmet_Food"
 # SFT trainer config
 bf16: true
 do_eval: false
@@ -17,7 +17,7 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: True  
 gradient_checkpointing_kwargs:
   use_reentrant: True #false
-hub_model_id: google_gemma-3-1b-it_sft_001_amazon_Office_Products
+hub_model_id: google_gemma-3-1b-it_sft_001_amazon_Grocery_and_Gourmet_Food
 hub_strategy: every_save
 learning_rate: 5.0e-05 
 log_level: info
@@ -30,7 +30,7 @@ packing: False
 max_seq_length: 10000 
 max_steps: -1  
 num_train_epochs: 2 
-output_dir: data/google_gemma-3-1b-it_sft_001_amazon_Office_Products
+output_dir: data/google_gemma-3-1b-it_sft_001_amazon_Grocery_and_Gourmet_Food
 overwrite_output_dir: true
 per_device_eval_batch_size: 2
 per_device_train_batch_size: 2 

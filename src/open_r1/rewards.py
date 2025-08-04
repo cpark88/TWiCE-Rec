@@ -94,14 +94,14 @@ data_args = DataArguments()
 training_args = TrainingArguments()
 training_args.label_names=['answer_id', 'test_neg','input_ids_item', 'pos_ids_item', 'neg_ids_item']
 
-domain = "Office_Products"
+domain = "Grocery_and_Gourmet_Food"
 
 with open(f'./src/open_r1/sasrec/amazon_dataset/vocab/amazon_vocab_{domain}.json', 'r') as f:
     vocab_dict = json.load(f)
 vocab_dict_inverse = {v:k for k, v in vocab_dict.items()}
 
 data_args.len_vocab_dict_tokenized = len(vocab_dict)+1
-model_args.pretrained_model_path = f"./src/open_r1/sasrec/output_dir/{domain}/checkpoint-100/model.safetensors"
+model_args.pretrained_model_path = f"./src/open_r1/sasrec/output_dir/{domain}/checkpoint-60/model.safetensors"
 data_args.pad_token_id = 2
 training_args.model_max_length = 100
 training_args.item_enc_type = 'fc_layer'
