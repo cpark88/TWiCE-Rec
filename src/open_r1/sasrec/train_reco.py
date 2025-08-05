@@ -1,6 +1,4 @@
 # -*- coding:utf-8 -*-
-# __author__ = Chung Park
-# __date__ = 2024/3/2
 
 
 from util import neg_sample, neg_sample_set, get_sample_scores
@@ -60,7 +58,7 @@ def train():
     data_module = make_supervised_data_module_v3(data_args=data_args) # ->dict
     betas = (0.9, 0.999)
     optim = torch.optim.Adam(one_model.parameters(), lr=0.0001, betas=betas, weight_decay=0)
-    trainer = Trainer(model=one_model, tokenizer=None, args=training_args, **data_module) #CustomTrainer Trainer
+    trainer = Trainer(model=one_model, tokenizer=None, args=training_args, **data_module)
 
 
     trainer.train()

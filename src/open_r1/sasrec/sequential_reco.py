@@ -1,6 +1,4 @@
 # -*- coding:utf-8 -*-
-# __author__ = Chung Park, Kim TaeSan
-# __date__ = 2024/3/2
 
 import numpy as np
 
@@ -356,7 +354,7 @@ class EncoderItem(nn.Module):
             all_encoder_layers.append(hidden_states)
         return all_encoder_layers
 
-class ItemEncoder: # sequence item에 해당하는 sub token emb 평균 추출 sample_id
+class ItemEncoder: 
     """
     Extracting trainable item embedding (pos/neg)
     """

@@ -15,24 +15,6 @@
 """
 Supervised fine-tuning script for decoder language models.
 
-Usage:
-
-# One 1 node of 8 x H100s
-accelerate launch --config_file=recipes/accelerate_configs/zero3.yaml src/open_r1/sft.py \
-    --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct \
-    --dataset_name HuggingFaceH4/Bespoke-Stratos-17k \
-    --learning_rate 2.0e-5 \
-    --num_train_epochs 1 \
-    --packing \
-    --max_seq_length 4096 \
-    --per_device_train_batch_size 2 \
-    --gradient_accumulation_steps 8 \
-    --gradient_checkpointing \
-    --bf16 \
-    --logging_steps 5 \
-    --eval_strategy steps \
-    --eval_steps 100 \
-    --output_dir data/Qwen2.5-1.5B-Open-R1-Distill
 """
 
 import logging
@@ -118,11 +100,7 @@ def main(script_args, training_args, model_args):
         
     ################
     # Load datasets
-    ################
-    # amazon case
-    
-    
-    # domain = "Grocery_and_Gourmet_Food"
+    ################    
     domain = training_args.domain
     dataset_train = []
 
@@ -130,7 +108,6 @@ def main(script_args, training_args, model_args):
     with open(f"./src/open_r1/sasrec/amazon_dataset/meta_dataset/amazon_{domain}_llm_train_sample.json", 'r', encoding='utf-8') as f:
         dataset_train_3 = json.load(f)
         random.shuffle(dataset_train_3)
-        # dataset_train_3 = dataset_train_3[:200]
         print("train1:", len(dataset_train_3))
         dataset_train.extend(dataset_train_3)
 
@@ -139,14 +116,12 @@ def main(script_args, training_args, model_args):
         dataset_train_2 = json.load(f)
         print("train2:", len(dataset_train_2))
         random.shuffle(dataset_train_2)
-        # dataset_train_2 = dataset_train_2[:200]
         dataset_train.extend(dataset_train_2)
 
     #task3: srr
     with open(f"./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_sample.json", 'r', encoding='utf-8') as f:
         dataset_train_1 = json.load(f)
         random.shuffle(dataset_train_1)
-        # dataset_train_1 = dataset_train_1[:100]
         print("train3:", len(dataset_train_1))
         dataset_train.extend(dataset_train_1)
             
@@ -250,8 +225,6 @@ def main(script_args, training_args, model_args):
     }
     if trainer.accelerator.is_main_process:
         trainer.create_model_card(**kwargs)
-        # Restore k,v cache for fast inference
-        # trainer.model.config.use_cache = True
         trainer.model.config.save_pretrained(training_args.output_dir)
 
     ##########

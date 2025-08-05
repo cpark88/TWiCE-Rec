@@ -22,11 +22,11 @@ class CustomModelOutput(ModelOutput):
 @dataclass
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default=None)
-    loss_type: str = field(default=None)#added
-    lora_r: int = field(default=None)#added #16,#self.args['lora_r'],
-    lora_alpha: int= field(default=None)  #16,#self.args['lora_alpha'],
-    lora_dropout: float = field(default=None) #added
-    pretrained_model_path: str = field(default=None) #added
+    loss_type: str = field(default=None)
+    lora_r: int = field(default=None)
+    lora_alpha: int= field(default=None)
+    lora_dropout: float = field(default=None)
+    pretrained_model_path: str = field(default=None)
 
 @dataclass
 class DataArguments:
@@ -50,11 +50,11 @@ class TrainingArguments(transformers.TrainingArguments):
         default=512,
         metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."},
     )
-    lora_yn: str = field(default=None)#added
-    token: str = field(default=None)#added
-    clm_loss: str = field(default=None)#added
-    item_enc_type: str = field(default=None)#added
-    peft_method: str = field(default=None)#added
+    lora_yn: str = field(default=None)
+    token: str = field(default=None)
+    clm_loss: str = field(default=None)
+    item_enc_type: str = field(default=None)
+    peft_method: str = field(default=None)
     
     
     

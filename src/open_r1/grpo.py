@@ -82,14 +82,6 @@ def main(script_args, training_args, model_args):
         init_wandb_training(training_args)
 
     # Load the dataset
-
-
-
-
-
-
-    # amazon
-    # domain = 'Amazon_Fashion'
     domain = training_args.domain
     dataset_name = f'./src/open_r1/sasrec/amazon_dataset/llm_dataset/amazon_{domain}_llm_train_case_1_sample.json'
     with open(dataset_name, 'r', encoding='utf-8') as f: 
@@ -104,15 +96,7 @@ def main(script_args, training_args, model_args):
         dataset_test = json.load(f)
     random.shuffle(dataset_test)
     dataset_test = dataset_test[:500]  
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     dataset_train = Dataset.from_list(dataset_train)
     dataset_test = Dataset.from_list(dataset_train)
     
@@ -151,7 +135,7 @@ def main(script_args, training_args, model_args):
             dataset[split] = dataset[split].remove_columns("messages")
 
     #############################
-    # Initialize the GRPO trainer GRPOEditedTrainer GRPOTrainer
+    # Initialize the GRPO trainer
     #############################
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,

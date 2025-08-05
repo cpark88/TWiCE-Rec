@@ -26,14 +26,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yaml')
     
-    # 먼저 --config 받아오기
     temp_args, _ = parser.parse_known_args()
 
-    # YAML 로드
+    # YAML load
     with open(temp_args.config, 'r') as f:
         config_dict = yaml.safe_load(f)
 
-    # YAML 값으로 전체 arg 세팅
     for k, v in config_dict.items():
         parser.add_argument(f'--{k}', default=v)
 
@@ -42,7 +40,7 @@ def main():
     ###
     base_model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path, torch_dtype=torch.float16)
     print(base_model.dtype)
-    model_to_merge = PeftModel.from_pretrained(base_model, args.output_dir) # output_dir에는 이미 lora adapter 존재
+    model_to_merge = PeftModel.from_pretrained(base_model, args.output_dir)
     merged_model = model_to_merge.merge_and_unload()
     merged_model = merged_model.half() #fp16
     merged_model.save_pretrained(args.output_dir+'_lora', safe_serialization=True)
@@ -51,9 +49,8 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path, trust_remote_code=args.trust_remote_code, revision='main')
     tokenizer.save_pretrained(args.output_dir+'_lora')
     
-    # gemma 3 27b case
     try:
-        processor = AutoProcessor.from_pretrained(args.model_name_or_path)  # 예시
+        processor = AutoProcessor.from_pretrained(args.model_name_or_path) 
         processor.save_pretrained(args.output_dir+'_lora')
     except:
         pass

@@ -1,7 +1,4 @@
-
 # -*- coding:utf-8 -*-
-# __author__ = Chung Park
-# __date__ = 2024/3/2
 
 from safetensors.torch import load_file
 from util import neg_sample, neg_sample_set, get_sample_scores
@@ -60,10 +57,8 @@ def inference():
     model_files = target_dir + '/' + model_files + '/model.safetensors'
     print("Model_files:", model_files)
     
-    # state_dict = load_file(model_args.pretrained_model_path)
     state_dict = load_file(model_files)
 
-    # 4. 모델에 state_dict 로드
     one_model.load_state_dict(state_dict)
     print("Model Load Complete!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

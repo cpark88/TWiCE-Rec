@@ -22,10 +22,6 @@ import re
 from functools import partial, update_wrapper
 from typing import Callable, Dict, Optional
 
-# from latex2sympy2_extended import NormalizationConfig
-# from math_verify import LatexExtractionConfig, parse, verify
-
-    
 import re
 from typing import Optional
 
@@ -119,7 +115,7 @@ print(one_model)
 
 
 # irm_final_rewards    
-def collaborative_guided_reward(completions: list[list[dict[str, str]]], output: list[str], output_id: list[str], lambda_: float = 3.0, cf_threshold: float = 0.3, **kwargs) -> list[Optional[float]]: # default lambda = 2
+def collaborative_guided_reward(completions: list[list[dict[str, str]]], output: list[str], output_id: list[str], lambda_: float = 3.0, cf_threshold: float = 0.3, **kwargs) -> list[Optional[float]]:
     """
     collaborative_guided_reward
     
@@ -223,13 +219,8 @@ def only_expected_tags_reward(completions: list[list[dict[str, str]]], **kwargs)
     rewards = []
 
     for content in contents:
-        # 모든 태그 이름 추출: <tag> 또는 </tag>
         tags = re.findall(r"</?([a-zA-Z0-9_]+)>", content)
-
-        # 고유한 태그 집합 만들기
         unique_tags = set(tags)
-
-        # 허용된 태그 외에 다른 것이 하나라도 있으면 0점
         if unique_tags.issubset(allowed_tags):
             reward = 1.0
         else:
@@ -314,20 +305,7 @@ def tag_count_reward(completions, **kwargs) -> list[float]:
     """Reward function that checks if we produce the desired number of think and answer tags associated with `format_reward()`.
 
     Adapted from: https://gist.github.com/willccbb/4676755236bb08cab5f4e54a0475d6fb#file-grpo_demo-py-L90
-    """
-
-    # def count_tags(text: str) -> float:
-    #     count = 0.0
-    #     if text.count("<think>\n") == 1:
-    #         count += 0.25
-    #     if text.count("\n</think>\n") == 1:
-    #         count += 0.25
-    #     if text.count("\n<answer>\n") == 1:
-    #         count += 0.25
-    #     if text.count("\n</answer>") == 1:
-    #         count += 0.25
-    #     return count
-    
+    """    
     def count_tags(text: str) -> float:
         count = 0.0
         if text.count("<item_nm>") == 1:
@@ -674,8 +652,8 @@ def preprocess_v2(
     """
 
     target_id_split_original = [example.split(',') for example in targets_id]
-    target_id_split = [torch.tensor([int(j) for j in i][1:]) for i in target_id_split_original ] # 원래 개수에서 한개 빠짐 (하나씩 밀면서)
-    input_target_id_split = [torch.tensor([int(j) for j in i][:-1]) for i in target_id_split_original ] # 수정 20240913 (input)
+    target_id_split = [torch.tensor([int(j) for j in i][1:]) for i in target_id_split_original ] 
+    input_target_id_split = [torch.tensor([int(j) for j in i][:-1]) for i in target_id_split_original ]
     return dict(input_ids_item=input_target_id_split, pos_ids_item=target_id_split)
 
 
@@ -697,19 +675,16 @@ class SupervisedDatasetv3(Dataset):
         print("data_path", data_path)
         list_data_dict = util.jload(data_path)
 
-        logging.warning("Formatting inputs...")
-        # prompt_input, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT["prompt_no_input"]
-        # sources = [prompt_input.format_map(example) for example in list_data_dict]
-        
+        logging.warning("Formatting inputs...")        
         sources = [example for example in list_data_dict]
         
         self.answer_id=[]
         if self.model_type=='inference':
-            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) }" for example in list_data_dict]# 수정 20240501
-            self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict] # 수정 20240501
+            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) }" for example in list_data_dict]
+            self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict] 
 
         elif self.model_type=='train':
-            targets_id = [f"{ ','.join(example['output_id'].split(',')[:-2]) }" for example in list_data_dict]# 수정 20240501
+            targets_id = [f"{ ','.join(example['output_id'].split(',')[:-2]) }" for example in list_data_dict]
             self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict]
 
         elif self.model_type=='valid':
@@ -717,8 +692,8 @@ class SupervisedDatasetv3(Dataset):
             # self.answer_id = [0]
 
         elif self.model_type=='test':
-            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) }" for example in list_data_dict]# 수정 20240501
-            self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict] # only for test
+            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) }" for example in list_data_dict]
+            self.answer_id = [ int(example['output_id'].split(',')[-1])   for example in list_data_dict]
 
         else:
             raise ValueError("model_type should be either 'inference' or 'train' or 'valid' or 'test', but got {}".format(self.model_type))
@@ -726,18 +701,18 @@ class SupervisedDatasetv3(Dataset):
         logging.warning("Tokenizing inputs... This may take some time...")
         data_dict = preprocess_v2(targets_id)
 
-        self.input_ids_item = data_dict['input_ids_item']#20240913
-        self.pos_ids_item = data_dict['pos_ids_item']#20240913
+        self.input_ids_item = data_dict['input_ids_item']
+        self.pos_ids_item = data_dict['pos_ids_item']
 
 
     def __len__(self):
-        return len(self.input_ids_item)#//20
+        return len(self.input_ids_item)
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         test_neg = []
         if self.model_type=='test':
             seq_set = set(self.pos_ids_item[i])
-            seq_set.update({0,1,2}) #특수토큰 제외
+            seq_set.update({0,1,2})
             for _ in range(100):
                 test_neg.append(neg_sample(seq_set, self.len_vocab_dict_tokenized)) # vocab
 
@@ -749,7 +724,7 @@ class SupervisedDatasetv3(Dataset):
             if self.neg_sample_type == 'basic':
                 neg_ids_item.append(neg_sample(seq_set_item, self.len_vocab_dict_tokenized))
 
-        return dict(answer_id=self.answer_id[i], test_neg=test_neg, input_ids_item=self.input_ids_item[i], pos_ids_item=self.pos_ids_item[i], neg_ids_item=torch.tensor(neg_ids_item))#20240913
+        return dict(answer_id=self.answer_id[i], test_neg=test_neg, input_ids_item=self.input_ids_item[i], pos_ids_item=self.pos_ids_item[i], neg_ids_item=torch.tensor(neg_ids_item))
 
 
 def customized_pad_sequence(
@@ -776,8 +751,6 @@ def customized_pad_sequence(
 @dataclass
 class DataCollatorForSupervisedDatasetv3(object):
     """Collate examples for supervised fine-tuning."""
-
-    # tokenizer: transformers.PreTrainedTokenizer
     pad_token_id: int
     
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
@@ -791,8 +764,8 @@ class DataCollatorForSupervisedDatasetv3(object):
         neg_ids_item = customized_pad_sequence(neg_ids_item, batch_first=True, padding_value=self.pad_token_id, pos='left')
 
         return dict(
-            answer_id=answer_id, # sub-token 변환 전이며 이는 evaluation시 마지막 도메인 확인 시에 사용
-            test_neg=test_neg, # sub-token 변환전 
+            answer_id=answer_id, 
+            test_neg=test_neg, 
             input_ids_item=input_ids_item,
             pos_ids_item=pos_ids_item,
             neg_ids_item=neg_ids_item,

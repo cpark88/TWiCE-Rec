@@ -1,6 +1,4 @@
 # -*- coding:utf-8 -*-
-# __author__ = Chung Park
-# __date__ = 2024/3/2
 
 from util import neg_sample, neg_sample_set, get_sample_scores, neg_sample_unigram
 from customized_model import OneModelV3
@@ -49,15 +47,9 @@ def preprocess_v2(
     """Preprocess the data by tokenizing.
        Add the labels_id which indicates the real indices of items.
     """
-
-    # target_id_split_original = [example.split(',') for example in targets_id]
-    # target_id_split = [torch.tensor([int(j) for j in i][1:]) for i in target_id_split_original ] # 원래 개수에서 한개 빠짐 (하나씩 밀면서)
-    # input_target_id_split = [torch.tensor([int(j) for j in i][:-1]) for i in target_id_split_original ] # 수정 20240913 (input)
-    # return dict(input_ids_item=input_target_id_split, pos_ids_item=target_id_split)
-    
     target_id_split_original = [example.split(',') for example in targets_id]
-    target_id_split = [torch.tensor([int(j) for j in i][1:]) for i in target_id_split_original ] # 원래 개수에서 한개 빠짐 (하나씩 밀면서)
-    input_target_id_split = [torch.tensor([int(j) for j in i][:-1]) for i in target_id_split_original ] # 수정 20240913 (input)
+    target_id_split = [torch.tensor([int(j) for j in i][1:]) for i in target_id_split_original ] 
+    input_target_id_split = [torch.tensor([int(j) for j in i][:-1]) for i in target_id_split_original ] 
     return dict(input_ids_item=input_target_id_split, pos_ids_item=target_id_split)
 
 
@@ -85,20 +77,20 @@ class SupervisedDatasetv3(Dataset):
 
         self.answer_id=[]
         if self.model_type=='inference':
-            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) + ','+example['positive_item_id'] }" for example in list_data_dict]# 수정 20240501
-            self.answer_id = [ int(example['positive_item_id'])   for example in list_data_dict] # 수정 20240501
+            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) + ','+example['positive_item_id'] }" for example in list_data_dict]
+            self.answer_id = [ int(example['positive_item_id'])   for example in list_data_dict]
 
         elif self.model_type=='train':
-            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) + ','+example['positive_item_id'] }" for example in list_data_dict]# 수정 20240501
-            self.answer_id = [ int(example['positive_item_id'])   for example in list_data_dict] # 수정 20240501
+            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) + ','+example['positive_item_id'] }" for example in list_data_dict]
+            self.answer_id = [ int(example['positive_item_id'])   for example in list_data_dict] 
 
         elif self.model_type=='valid':
-            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) + ','+example['positive_item_id'] }" for example in list_data_dict]# 수정 20240501
-            self.answer_id = [ int(example['positive_item_id'])   for example in list_data_dict] # 수정 20240501
+            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) + ','+example['positive_item_id'] }" for example in list_data_dict]
+            self.answer_id = [ int(example['positive_item_id'])   for example in list_data_dict]
 
         elif self.model_type=='test':
-            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) + ','+example['positive_item_id'] }" for example in list_data_dict]# 수정 20240501
-            self.answer_id = [ int(example['positive_item_id'])   for example in list_data_dict] # 수정 20240501
+            targets_id = [f"{ ','.join(example['output_id'].split(',')[:]) + ','+example['positive_item_id'] }" for example in list_data_dict]
+            self.answer_id = [ int(example['positive_item_id'])   for example in list_data_dict]
 
         else:
             raise ValueError("model_type should be either 'inference' or 'train' or 'valid' or 'test', but got {}".format(self.model_type))
@@ -106,18 +98,18 @@ class SupervisedDatasetv3(Dataset):
         logging.warning("Tokenizing inputs... This may take some time...")
         data_dict = preprocess_v2(targets_id)
 
-        self.input_ids_item = data_dict['input_ids_item']#20240913
-        self.pos_ids_item = data_dict['pos_ids_item']#20240913
+        self.input_ids_item = data_dict['input_ids_item']
+        self.pos_ids_item = data_dict['pos_ids_item']
 
 
     def __len__(self):
-        return len(self.input_ids_item)#//20
+        return len(self.input_ids_item)
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         test_neg = []
         if self.model_type=='test':
             seq_set = set(self.pos_ids_item[i])
-            seq_set.update({0,1,2}) #특수토큰 제외
+            seq_set.update({0,1,2}) 
             for _ in range(29): #99
                 test_neg.append(neg_sample(seq_set, self.len_vocab_dict_tokenized)) # vocab
 
@@ -129,7 +121,7 @@ class SupervisedDatasetv3(Dataset):
             if self.neg_sample_type == 'basic':
                 neg_ids_item.append(neg_sample(seq_set_item, self.len_vocab_dict_tokenized))
 
-        return dict(answer_id=self.answer_id[i], test_neg=test_neg, input_ids_item=self.input_ids_item[i], pos_ids_item=self.pos_ids_item[i], neg_ids_item=torch.tensor(neg_ids_item))#20240913
+        return dict(answer_id=self.answer_id[i], test_neg=test_neg, input_ids_item=self.input_ids_item[i], pos_ids_item=self.pos_ids_item[i], neg_ids_item=torch.tensor(neg_ids_item))
 
 
 def customized_pad_sequence(

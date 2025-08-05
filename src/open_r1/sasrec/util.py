@@ -7,10 +7,7 @@ import sys
 import time
 import json
 from typing import Optional, Sequence, Union
-
-# import openai
 import tqdm
-# from openai import openai_object
 import copy
 import random
 from typing import Dict, Optional, Sequence
@@ -79,12 +76,11 @@ def smart_tokenizer_and_embedding_resize_v3(
 def sequential_loss(pooled_output, labels_id, neg_sample_id, labels_token_id, loss_type, training_args, num_virtual_tokens, tokenizer, item_encoder, item_enc_type, backbone_model):
     if loss_type == 'bpr':
         if training_args.peft_method=='p_tuning':
-            tensor = torch.full((labels_id.size(0), num_virtual_tokens, labels_id.size(2)), tokenizer.pad_token_id).to(labels_id.device) #추가#20240904
-            # tensor = torch.full((labels_id.size(0), num_virtual_tokens), tokenizer.pad_token_id).to(labels_id.device) #추가
-            labels_id = torch.cat([tensor, labels_id], dim = 1) #추가 Bx16xsubtoken |BxSxsubtoken 
-            neg_sample_id = torch.cat([tensor, neg_sample_id], dim = 1) #추가
+            tensor = torch.full((labels_id.size(0), num_virtual_tokens, labels_id.size(2)), tokenizer.pad_token_id).to(labels_id.device)
+            labels_id = torch.cat([tensor, labels_id], dim = 1) 
+            neg_sample_id = torch.cat([tensor, neg_sample_id], dim = 1)
             
-            tensor = torch.full((labels_token_id.size(0), num_virtual_tokens), tokenizer.pad_token_id).to(labels_token_id.device) #추가
+            tensor = torch.full((labels_token_id.size(0), num_virtual_tokens), tokenizer.pad_token_id).to(labels_token_id.device)
             labels_token_id = torch.cat([tensor, labels_token_id], dim = -1)
             del tensor
 
@@ -99,7 +95,7 @@ def sequential_loss(pooled_output, labels_id, neg_sample_id, labels_token_id, lo
         pos_logits = torch.sum(pos * seq_emb, -1) # [B*S]
         neg_logits = torch.sum(neg * seq_emb, -1) # [B*S]
 
-        istarget = (labels_token_id > tokenizer.pad_token_id).view(labels_token_id.size(0) * labels_token_id.size(1)).float() # [B*S]#20240904
+        istarget = (labels_token_id > tokenizer.pad_token_id).view(labels_token_id.size(0) * labels_token_id.size(1)).float() [B*S]
 
         loss_seq = torch.sum(
             - torch.log(torch.sigmoid(pos_logits) + 1e-24) * istarget -
@@ -132,7 +128,7 @@ def sequential_loss_item(item_embeddings, seq_out, pos_id, neg_id, training_args
         pos = pos_emb.view(-1, pos_emb.size(2))
         neg = neg_emb.view(-1, neg_emb.size(2))
 
-        seq_emb = seq_out.view(-1, seq_out.size(2))#training_args.hidden_size_item) # [B*S X H]
+        seq_emb = seq_out.view(-1, seq_out.size(2))# [B*S X H]
         pos_logits = torch.sum(pos * seq_emb, -1) # [B*S]
         neg_logits = torch.sum(neg * seq_emb, -1) # [B*S]
         istarget = (pos_id > data_args.pad_token_id).view(pos_id.size(0) * pos_id.size(1)).float() # [B*S]
@@ -146,11 +142,10 @@ def sequential_loss_item(item_embeddings, seq_out, pos_id, neg_id, training_args
 
 def kl_divergence_loss(student_output, teacher_output, temperature):
 
-    # 온도를 반영한 softmax 분포 계산
     teacher_probs = F.softmax(teacher_output / temperature, dim=2) # B x S x H
     student_log_probs = F.log_softmax(student_output / temperature, dim=2) # B x S x H
 
-    # KL Divergence 계산 (교사와 학생의 분포 차이를 계산)
+    # KL Divergence 
     kl_div = F.kl_div(student_log_probs, teacher_probs, reduction='batchmean') * (temperature ** 2)
     return kl_div
     
@@ -159,13 +154,11 @@ def kl_divergence_loss(student_output, teacher_output, temperature):
 class AdaptiveLossWeighting(nn.Module):
     def __init__(self, num_losses):
         super(AdaptiveLossWeighting, self).__init__()
-        # 각 손실에 대한 log variance를 학습할 파라미터로 설정
         self.log_vars = nn.Parameter(torch.zeros(num_losses))
 
     def forward(self, losses):
         weighted_losses = 0
         for i, loss in enumerate(losses):
-            # log variance를 사용하여 가중치를 계산하고 손실에 반영
             precision = torch.exp(-self.log_vars[i])
             weighted_loss = precision * loss + self.log_vars[i]
             weighted_losses += weighted_loss

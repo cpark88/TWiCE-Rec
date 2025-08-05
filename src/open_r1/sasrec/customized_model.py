@@ -1,8 +1,4 @@
 # -*- coding:utf-8 -*-
-# __author__ = Chung Park & TAESAN
-# __create_date__ = 2024/3/2
-# __last_modified_date__ = 2024/4/5
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -45,21 +41,21 @@ class OneModelV3(nn.Module):
         Note that all elements in DataCollector should be used as input in forward function.  
         Extracting the last hidden state and user embedding
         """
-        if input_ids_item is not None:#only training (sometimes for inference)
+        if input_ids_item is not None:
             # id-based seqeunce reco modeling
             input_ids_item_emb = self.item_embedding(input_ids_item)
-            pooled_output_item = self.seq_encoder_item(input_ids_item_emb, input_ids_item, self.data_args.pad_token_id, output_all_encoded_layers=True) #input_ids_item나 pos_ids_item나 상관없음 self.IGNORE_INDEX
+            pooled_output_item = self.seq_encoder_item(input_ids_item_emb, input_ids_item, self.data_args.pad_token_id, output_all_encoded_layers=True) 
             pooled_output_item = pooled_output_item[-1] # BxSxH
             pooled_output_item = self.prediction_layer_item(pooled_output_item)
-            pooled_last_output_item = pooled_output_item[:,-1,:]#only for item temp 나중에 지워야함. 
+            pooled_last_output_item = pooled_output_item[:,-1,:] 
 
-        else:#only inference
+        else:
             pass
 
-        if test_neg is None:# before cross-attention, only inference
-            return pooled_output_item, pooled_last_output_item#only for item temp 나중에 지워야함.
+        if test_neg is None:
+            return pooled_output_item, pooled_last_output_item
             
-        else: #only training
+        else: 
             loss_item_seq = sequential_loss_item(self.item_embedding.item_embeddings, pooled_output_item, pos_ids_item, neg_ids_item, self.training_args, self.data_args)
 
 
@@ -91,12 +87,11 @@ class OneModelV3(nn.Module):
     def extract_logits(self, answer_id, test_neg, input_ids_item):
         """
         Leave-one-out Evaluation
-        answer_id : seq내 마지막 item index (정답) 
-        test_neg : test 용 100개 item index
+        answer_id : last item index 
+        test_neg : test 100 item index
         input_ids_item : input item seq
         """
         _, seq_out = self.forward(test_neg=None, answer_id=None, input_ids_item=input_ids_item, pos_ids_item=None, neg_ids_item=None)
-        # test_items = torch.cat((answer_id.unsqueeze(-1), test_neg), -1) # B x 1 + B x 100  -> B x 101
         test_items = answer_id.unsqueeze(-1) # B x 1
         test_item_emb = self.item_embedding.item_embeddings(test_items)
         test_logits = torch.bmm(test_item_emb, seq_out.unsqueeze(-1)).squeeze(-1)  # [B 1]
