@@ -28,9 +28,19 @@ pip install -r requirements.txt
 
 ## Dataset
 ***
-To facilitate smooth testing, we have uploaded a small-sized temporary raw data in src/open_r1/sasrec/amazon_dataset. We have also uploaded the full dataset for the Grocery and Gourmet Food domain at the following path, so our paper can be reproduced using this data.
+To facilitate smooth testing, we have uploaded a small-sized temporary raw data in src/open_r1/sasrec/amazon_dataset. We have also uploaded the full dataset for the Grocery and Gourmet Food domain at the following path, so our paper can be reproduced using this data.  
+(Updated) We openly release all the data used in our paper. This dataset is reconstructed from the Amazon Review 2023 corpus, and the recommendation rationales were generated and refined using a large-scale LLM.
+
 https://drive.google.com/drive/folders/1k8FS7F3woEZJhBabd5_BQn56I8bd5abP
 
+```bibtex
+@article{hou2024bridging,
+  title={Bridging Language and Items for Retrieval and Recommendation},
+  author={Hou, Yupeng and Li, Jiacheng and He, Zhankui and Yan, An and Chen, Xiusi and McAuley, Julian},
+  journal={arXiv preprint arXiv:2403.03952},
+  year={2024}
+}
+```
 
 ## Stage 2 (Rationale-Aware Knowledge Alignment)
 ***
